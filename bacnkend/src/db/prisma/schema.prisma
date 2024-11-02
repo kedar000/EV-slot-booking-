@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://your_user:your_password@localhost:5432/ev_slot_booking"
+}
+
+enum SlotStatus {
+  FREE
+  FREEZE
+  BOOKED
+}
+
+enum ReservationStatus {
+  CONFIRMED
+  CANCELLED
+  PENDING
+}
+
+model User {
+  id             Int     @id @default(autoincrement())
+  name           String
+  email          String  @unique
+  password       String
+  phoneNumber    String? @unique
+  reservations    Reservation[]
+}
+
+model EVStation {
+  id              Int            @id @default(autoincrement())
+  name            String
+  location        String
+  latitude        Float   
+  longitude       Float   
+  slots           Slot[]
+}
+
+model Slot {
+  id              Int            @id @default(autoincrement())
+  stationId       Int
+  slotNumber      Int            @unique // Slot numbers should be unique within each station
+  isAvailable     SlotStatus        
+  startTime       DateTime       // Start time of the slot
+  endTime         DateTime       // End time of the slot
+  reservation     Reservation?
+  EVStation       EVStation      @relation(fields: [stationId], references: [id])
+}
+
+model Reservation {
+  id              Int                 @id @default(autoincrement())
+  userId          Int
+  slotId          Int @unique
+  startTime       DateTime
+  endTime         DateTime
+  status          ReservationStatus    @default(PENDING) // Use enum for reservation status
+  createdAt       DateTime            @default(now())      // Track when the reservation was created
+  updatedAt       DateTime            @updatedAt           // Track when the reservation was updated
+  User            User                 @relation(fields: [userId], references: [id])
+  Slot            Slot                 @relation(fields: [slotId], references: [id])
+}
