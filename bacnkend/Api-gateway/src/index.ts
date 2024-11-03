@@ -46,10 +46,9 @@ wss.on('connection', (ws) => {
     });
 });
 
-// Health check route
-app.get('/health', (req: Request, res: Response) => {
-  res.send('API Gateway is up and running');
-});
+app.post('/signup' , async (req, res)=>{
+    
+})
 
 // Start the server
 server.listen(PORT, () => {
