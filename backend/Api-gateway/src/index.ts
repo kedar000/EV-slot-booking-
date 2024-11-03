@@ -3,11 +3,43 @@ import dotenv from 'dotenv';
 import WebSocket from 'ws';
 import { createClient } from 'redis';
 import { createServer } from 'http';
+import { Kafka } from 'kafkajs';
+
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 8000;
+app.use(express.json());
+const PORT = process.env.PORT || 8080;
+
+
+const kafka = new Kafka({
+    clientId: 'api-gateway',
+    brokers: ['localhost:9092'],
+});
+  
+const producer = kafka.producer();
+
+async function produceEvent(topic: string, eventType: string, payload: object) {
+    try {
+      await producer.connect();
+      await producer.send({
+        topic: topic,
+        messages: [{
+          value: JSON.stringify({
+            eventType,   // Add eventType to the message
+            payload,     
+          }),
+        }],
+      });
+      console.log(`Message sent to topic ${topic}:`, { eventType, payload });
+    } catch (error) {
+      console.error(`Error sending message: ${error}`);
+    } finally {
+      await producer.disconnect(); 
+    }
+}
+
 
 // Initialize Redis
 const redisClient = createClient({ url: process.env.REDIS_URL });
@@ -46,18 +78,30 @@ wss.on('connection', (ws) => {
     });
 });
 
-app.post('/signup' , async (req, res)=>{
-    
-})
 
-// Start the server
+app.post('/events', async (req : any, res : any) => {
+    const { topic, eventType, payload } = req.body;
+  
+
+    if (!topic || !eventType || !payload) {
+      return res.status(400).json({ error: 'Missing topic, eventType, or payload' });
+    }
+  
+    await produceEvent(topic, eventType, payload);
+    return res.status(200).json({ message: 'Event produced successfully' });
+});
+
+
+
 server.listen(PORT, () => {
     console.log(`API Gateway is running on port ${PORT}`);
 });
 
 // Graceful shutdown
-process.on('SIGINT', () => {
+process.on('SIGINT', async() => {
     console.log('Shutting down gracefully...');
+    await producer.disconnect(); 
+     process.exit(0);
     wss.clients.forEach(client => {
         client.close();
     });
