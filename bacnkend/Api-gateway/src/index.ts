@@ -1,6 +1,8 @@
 import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
+import WebSocket from 'ws';
 import { createClient } from 'redis';
+import { createServer } from 'http';
 
 dotenv.config();
 
@@ -13,11 +15,55 @@ console.log(process.env.REDIS_URL)
 
 redisClient.connect().catch(console.error);
 
+
+//web socket 
+const server = createServer(app)
+
+// Create a WebSocket server
+const wss = new WebSocket.Server({ server });
+
+const activeClients: Map<string, WebSocket> = new Map();
+
+wss.on('connection', (ws) => {
+    console.log(`Client connected: ${ws}`);
+
+    // Listen for messages from the client to register user ID
+    ws.on('message', (message) => {
+        const { userId } = JSON.parse(message.toString());
+        console.log(`Client registered for userId: ${userId}`);
+        activeClients.set(userId, ws);
+    });
+
+    // Handle client disconnection
+    ws.on('close', () => {
+        console.log(`Client disconnected: ${ws}`);
+        // Remove disconnected client
+        activeClients.forEach((client, userId) => {
+            if (client === ws) {
+                activeClients.delete(userId);
+            }
+        });
+    });
+});
+
 // Health check route
 app.get('/health', (req: Request, res: Response) => {
   res.send('API Gateway is up and running');
 });
 
-app.listen(PORT, () => {
-  console.log(`API Gateway listening on port ${PORT}`);
+// Start the server
+server.listen(PORT, () => {
+    console.log(`API Gateway is running on port ${PORT}`);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+    console.log('Shutting down gracefully...');
+    wss.clients.forEach(client => {
+        client.close();
+    });
+    server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+    });
 });
