@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = ""
+}
+
+model Station {
+  id          String   @id @default(uuid())
+  name        String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  defaultPricePerHour Float 
+
+  Slots       Slot[]
+  Location    Location[]
+}
+
+model Slot {
+  id          String   @id @default(uuid())
+  stationId   String
+  isAvailable Boolean  @default(true)
+  pricePerHour Float?
+  station     Station  @relation(fields: [stationId], references: [id])
+  
+
+  SlotTiming SlotTiming[]
+}
+
+model SlotTiming {
+  id          String   @id @default(uuid())
+  slotId      String
+  date        DateTime // Represents the specific day
+  hour        Int      // Represents the hour of the day (0-23)
+  isAvailable Boolean  @default(true) // Availability status of this hour slot
+  slot        Slot     @relation(fields: [slotId], references: [id])
+
+  @@unique([slotId, date, hour]) // Ensures a unique entry for each hour of the day per slot
+}
+
+model Location {
+  id          String   @id @default(uuid())
+  stationId   String
+  latitude    Float
+  longitude   Float
+  station     Station  @relation(fields: [stationId], references: [id])
+}
