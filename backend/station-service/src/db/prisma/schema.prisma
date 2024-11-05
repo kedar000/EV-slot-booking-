@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = ""
+  url      = "postgres://ev_station_user:ev_station_password@localhost:4002/ev_station_db"
 }
 
 model Station {
