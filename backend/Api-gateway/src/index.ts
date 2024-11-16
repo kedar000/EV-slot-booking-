@@ -12,7 +12,6 @@ const app = express();
 app.use(express.json());
 const PORT = process.env.PORT || 8080;
 
-
 const kafka = new Kafka({
     clientId: 'api-gateway',
     brokers: ['localhost:9092'],
@@ -78,7 +77,7 @@ wss.on('connection', (ws) => {
     });
 });
 
-
+//notification event 
 app.post('/events', async (req : any, res : any) => {
     const { topic, eventType, payload } = req.body;
   
@@ -92,6 +91,20 @@ app.post('/events', async (req : any, res : any) => {
 });
 
 
+// station registration
+app.post('/register-station', async (req, res) => {
+  const payload = req.body;
+
+  try {
+    await produceEvent('station-service', 'register_station', payload);
+    res.status(200).json({ message: 'Station registration event sent successfully' });
+  } catch (error) {
+    console.error('Error sending station registration event:', error);
+    res.status(500).json({ error: 'Failed to send station registration event' });
+  }
+});
+
+
 
 server.listen(PORT, () => {
     console.log(`API Gateway is running on port ${PORT}`);
@@ -102,11 +115,5 @@ process.on('SIGINT', async() => {
     console.log('Shutting down gracefully...');
     await producer.disconnect(); 
      process.exit(0);
-    wss.clients.forEach(client => {
-        client.close();
-    });
-    server.close(() => {
-        console.log('Server closed');
-        process.exit(0);
-    });
+    
 });
