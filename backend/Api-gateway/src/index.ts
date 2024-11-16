@@ -105,6 +105,18 @@ app.post('/register-station', async (req, res) => {
 });
 
 
+app.post('/slot-booking' , async(req , res)=>{
+  const playload = req.body;
+
+  try {
+    await produceEvent('reservation-service' , 'slot-booking' , playload);
+    res.status(200).json({message : 'Slot-booking event sent successfully'})
+  } catch (error) {
+    console.error('Error sending station registration event:', error);
+    res.status(500).json({error : 'Failed to send station registration event '});
+  }
+})
+
 
 server.listen(PORT, () => {
     console.log(`API Gateway is running on port ${PORT}`);
