@@ -77,8 +77,54 @@ async function registerStationLogic(payload: {
     },
   });
 
+  //generate the slots for a week 
+  await generateTimeslotsForThreedays();
+
   return station;
 }
+
+// generate time slots for a weeke 
+async function generateTimeslotsForThreedays() {
+    const startDate = new Date(); // Current date
+    const endDate = new Date();  // One week later
+    endDate.setDate(startDate.getDate() + 3);
+  
+    // Fetch all slots
+    const slots = await prisma.slot.findMany();
+  
+    if (slots.length === 0) {
+      console.log("No slots found to generate timeslots.");
+      return;
+    }
+  
+    for (const slot of slots) {
+      const timeslots = [];
+      let currentTime = new Date(startDate);
+      currentTime.setHours(0, 0, 0, 0); // Start at midnight of the current day
+  
+      while (currentTime < endDate) {
+        const currentHour = currentTime.getHours();
+  
+        timeslots.push({
+          slotId: slot.id,
+          date: new Date(currentTime),
+          hour: currentHour,
+          isAvailable: true,
+        });
+  
+        currentTime.setHours(currentHour + 1); // Increment by 1 hour
+      }
+  
+      // Bulk insert the timeslots
+      await prisma.slotTiming.createMany({
+        data: timeslots,
+        skipDuplicates: true,
+      });
+  
+      console.log(`Generated ${timeslots.length} timeslots for Slot ID: ${slot.id}`);
+    }
+  }
+
 
 // Define the /register-station route
 app.post("/register-station", async (req, res) => {
@@ -90,6 +136,113 @@ app.post("/register-station", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+app.put("/update-status" , async(req , res)=>{
+    const {stationId } = req.body;
+    try {
+        const station_info = await prisma.station.findUnique({
+            where :{
+                id : stationId
+            }
+        })
+        
+        if(!station_info){
+            res.send("station does not exist");
+        }
+
+        const updated_station = await prisma.station.update({
+            where : {
+                id : stationId
+            },
+            data : {
+                isActive : !station_info?.isActive
+            }
+        })
+
+        res.status(200).json({updated_data : updated_station});
+    } catch (error) {
+        console.log(error);
+        res.status(400).json({error : error})
+        
+    }
+})
+
+
+// route to get the free slots on that date
+app.get("/free-slots/:stationId", async (req : any, res : any) => {
+    const { stationId } = req.params;
+    const { date } = req.query; // Date should be in 'YYYY-MM-DD' format
+  
+    if (!date) {
+      return res.status(400).json({ error: "Please provide a valid date in 'YYYY-MM-DD' format" });
+    }
+  
+    try {
+      // Parse the date
+      const targetDate = new Date(date);
+      targetDate.setHours(0, 0, 0, 0); // Normalize to the start of the day
+  
+      // Fetch all free slots of the station for the specified day
+      const freeSlots = await prisma.slotTiming.findMany({
+        where: {
+          slot: {
+            stationId: stationId,
+            isAvailable: true, // Ensure the slot is marked as available
+          },
+          date: targetDate,
+          isAvailable: true, // Ensure the time slot is available
+        },
+        orderBy: {
+          hour: "asc", // Order by the hour for easier client display
+        },
+        include: {
+          slot: true, // Optionally include slot details
+        },
+      });
+  
+      if (freeSlots.length === 0) {
+        return res.status(404).json({ message: "No free slots available for the given date." });
+      }
+  
+      res.status(200).json(freeSlots);
+    } catch (error) {
+      console.error("Error fetching free slots:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+
+
+  app.get("/slot-timings/:slotId", async (req : any, res : any) => {
+    const { slotId } = req.params;
+    // const { date } = req.query;
+  
+    if (!slotId ) {
+      return res.status(400).json({ error: "Missing slotId or date in query" });
+    }
+  
+    try {
+  
+      // Query SlotTiming table
+      const slotTimings = await prisma.slotTiming.findMany({
+        where: {
+          slotId, 
+        },
+        include: {
+          slot: true, // Include the slot details if needed
+        },
+      });
+  
+      if (slotTimings.length === 0) {
+        return res.status(404).json({ message: "No slot timings found for the given date and slot" });
+      }
+  
+      res.status(200).json(slotTimings);
+    } catch (error) {
+      console.error("Error fetching slot timings:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
 
 // Start the Kafka consumer and the Express server
 const startServer = async () => {
