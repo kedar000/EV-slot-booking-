@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Slot Booking</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.8em;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-container {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-container label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .filter-container input,
+        .filter-container button {
+            padding: 10px;
+            font-size: 1em;
+            margin: 5px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            flex: 1;
+            max-width: 250px;
+        }
+
+        .filter-container button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            max-width: 150px;
+        }
+
+        .filter-container button:hover {
+            background-color: #45a049;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table th,
+        table td {
+            text-align: center;
+            padding: 12px;
+            border: 1px solid #ddd;
+        }
+
+        table th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        table tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        table td button {
+            padding: 8px 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        table td button:hover {
+            background-color: #0056b3;
+        }
+
+        .status-available {
+            color: #155724;
+            background-color: #d4edda;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .status-booked {
+            color: #721c24;
+            background-color: #f8d7da;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #777;
+        }
+
+        @media (max-width: 768px) {
+            .filter-container {
+                flex-direction: column;
+            }
+
+            .filter-container input,
+            .filter-container button {
+                flex: none;
+                width: 100%;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Time Slot Booking</h1>
+    </header>
+
+    <div class="container">
+        <p id="portDetails">Port Details</p>
+
+        <div class="filter-container">
+            <label for="date">Select Date:</label>
+            <input type="date" id="dateFilter" value="">
+            <button onclick="loadTimeSlots()">Check Slots</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Time Slot</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="timeSlotList"></tbody>
+        </table>
+    </div>
+
+    <footer class="footer">
+        &copy; 2024 Time Slot Booking System. All rights reserved.
+    </footer>
+
+    <script>
+        const unavailableSlots = {
+            "2024-11-17": [1, 5, 8],
+            "2024-11-18": [2, 10, 15]
+        };
+
+        const bookedSlots = {};
+
+        function generateTimeSlots(date) {
+            const slots = [];
+            const startTime = new Date(date);
+            startTime.setHours(0, 0, 0, 0);
+
+            const dateKey = date;
+            const bookedIndices = bookedSlots[dateKey] || [];
+            const preBookedIndices = unavailableSlots[dateKey] || [];
+
+            for (let i = 0; i < 24; i++) {
+                const isPreBooked = preBookedIndices.includes(i);
+                const isBooked = bookedIndices.includes(i);
+                const slotStart = new Date(startTime.getTime() + i * 60 * 60 * 1000);
+                const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
+
+                slots.push({
+                    start: slotStart,
+                    end: slotEnd,
+                    status: isPreBooked ? "Unavailable" : isBooked ? "Booked" : "Available"
+                });
+            }
+            return slots;
+        }
+
+        function loadTimeSlots() {
+            const date = document.getElementById("dateFilter").value;
+            if (!date) {
+                alert("Please select a date.");
+                return;
+            }
+
+            const slots = generateTimeSlots(date);
+            const timeSlotList = document.getElementById("timeSlotList");
+            timeSlotList.innerHTML = "";
+
+            slots.forEach((slot, index) => {
+                const row = document.createElement("tr");
+                const slotStart = slot.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const slotEnd = slot.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const slotTime = `${slotStart} - ${slotEnd}`;
+
+                let statusClass = "";
+                if (slot.status === "Unavailable") {
+                    statusClass = "status-booked";
+                } else if (slot.status === "Booked") {
+                    statusClass = "status-available";
+                }
+
+                row.innerHTML = `
+                    <td>${slotTime}</td>
+                    <td class="${statusClass}">${slot.status}</td>
+                    <td>
+                        ${slot.status === "Available" 
+                            ? `<button onclick="bookSlot(${index})">Book</button>` 
+                            : "N/A"}
+                    </td>
+                `;
+                timeSlotList.appendChild(row);
+            });
+        }
+
+        function bookSlot(slotIndex) {
+            const date = document.getElementById("dateFilter").value;
+            if (!date) {
+                alert("Please select a date before booking.");
+                return;
+            }
+
+            if (!bookedSlots[date]) {
+                bookedSlots[date] = [];
+            }
+
+            if (bookedSlots[date].includes(slotIndex) || unavailableSlots[date]?.includes(slotIndex)) {
+                alert("This slot is already booked or unavailable.");
+                return;
+            }
+
+            bookedSlots[date].push(slotIndex);
+            alert(`Slot #${slotIndex + 1} for ${date} booked successfully!`);
+            loadTimeSlots();
+        }
+
+        document.getElementById("dateFilter").valueAsDate = new Date();
+        loadTimeSlots();
+    </script>    
+
+</body>
+</html>
