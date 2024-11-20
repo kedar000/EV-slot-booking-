@@ -10,10 +10,10 @@ datasource db {
 model Reservation {
   id            String      @id @default(uuid())
   userId        String
-  slotId        String      // References Slot in Station Service
-  stationId     String      // References Station in Station Service
-  date          DateTime    // Date of the reservation
-  hour          Int         // Hour of the reservation (0-23)
+  slotId        String      
+  stationId     String      
+  date          DateTime    
+  hour          Int         
   totalPrice    Float
   status        ReservationStatus @default(PENDING)
   createdAt     DateTime    @default(now())

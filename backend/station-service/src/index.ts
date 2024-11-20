@@ -137,6 +137,37 @@ app.post("/register-station", async (req, res) => {
   }
 });
 
+
+app.get('/get-price/:stationId', async (req, res) => {
+  const { stationId } = req.params;
+
+  try {
+      if (!stationId) {
+          res.status(400).json({ mssg: "Please enter Station Id" });
+          return;
+      }
+
+      const station = await prisma.station.findUnique({
+          where: { id: stationId },
+      });
+
+      if (!station || !station.defaultPricePerHour) {
+          res.status(404).json({ mssg: "Station not found, please enter a valid Station Id" });
+          return;
+      }
+
+      const stationCost = station.defaultPricePerHour;
+
+      // Log the response for debugging
+      console.log(`Station Cost for ${stationId}:`, stationCost);
+
+      res.status(200).json({ stationCost });
+  } catch (error) {
+      console.error("Error fetching station:", error);
+      res.status(500).json({ error: error });
+  }
+});
+
 app.put("/update-status" , async(req , res)=>{
     const {stationId } = req.body;
     try {
@@ -187,16 +218,16 @@ app.get("/free-slots/:stationId", async (req : any, res : any) => {
         where: {
           slot: {
             stationId: stationId,
-            isAvailable: true, // Ensure the slot is marked as available
+            isAvailable: true, 
           },
           date: targetDate,
-          isAvailable: true, // Ensure the time slot is available
+          isAvailable: true, 
         },
         orderBy: {
-          hour: "asc", // Order by the hour for easier client display
+          hour: "asc", 
         },
         include: {
-          slot: true, // Optionally include slot details
+          slot: true, 
         },
       });
   
@@ -213,7 +244,7 @@ app.get("/free-slots/:stationId", async (req : any, res : any) => {
 
 
 
-  app.get("/slot-timings/:slotId", async (req : any, res : any) => {
+  app.get("/slot-timings/:slotId/", async (req : any, res : any) => {
     const { slotId } = req.params;
     // const { date } = req.query;
   
@@ -243,6 +274,47 @@ app.get("/free-slots/:stationId", async (req : any, res : any) => {
       res.status(500).json({ error: "Internal server error" });
     }
   });
+
+  app.put('/available/:slotId/:date/:hour', async (req: any, res: any) => {
+    const { slotId, date, hour } = req.params;
+  
+    // Validate inputs
+    if (!slotId || !date || !hour) {
+      return res.status(400).json({ error: "Missing slotId, date, or hour in parameters" });
+    }
+  
+    try {
+      // Debugging input values
+      console.log({
+        slotId,
+        date: new Date(date),
+        hour: parseInt(hour),
+        isAvailable: true,
+      });
+  
+      // Find and update the specific slot timing
+      const updatedSlotTiming = await prisma.slotTiming.update({
+        where: {
+          slotId_date_hour: {
+            slotId: slotId,
+            date: new Date(date), // Ensure the date is converted to a Date object
+            hour: parseInt(hour), // Ensure hour is an integer
+          },
+        },
+        data: {
+          isAvailable: false,
+        },
+      });
+  
+      res.status(200).json({ message: "Slot availability updated successfully", updatedSlotTiming });
+    } catch (error) {
+      
+      console.error("Error updating slot timing:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+
 
 // Start the Kafka consumer and the Express server
 const startServer = async () => {
