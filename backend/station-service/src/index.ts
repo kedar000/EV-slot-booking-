@@ -125,6 +125,25 @@ async function generateTimeslotsForThreedays() {
     }
   }
 
+app.get('/all-stations' , async(req , res) =>{
+  try {
+    const allStations = await prisma.station.findMany({
+      include: {
+        Slots: true,
+        Location: true, 
+      },
+    });
+
+    if(!allStations){
+      res.status(404).json({mssg : "stations fectching error 0r data base is empty"})
+      return;
+    }
+
+    res.status(200).json({allStations});
+  } catch (error) {
+    res.status(404).json({error : error});
+  }
+})
 
 // Define the /register-station route
 app.post("/register-station", async (req, res) => {
