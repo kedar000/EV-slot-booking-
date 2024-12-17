@@ -7,11 +7,11 @@ import EVSlotLogo from './logo'
 import { useActiveSection } from '../hooks/useActiveSection'
 
 const navItems = [
-  { name: 'Home', href: '#home' },
-  { name: 'Features', href: '#features' },
-  { name: 'How It Works', href: '#how-it-works' },
-  { name: 'Testimonials', href: '#testimonials' },
-  { name: 'Download', href: '#download' },
+  { name: 'Home ', href: '#home' },
+  { name: ' Features ', href: '#features' },
+  { name: ' How It Works ', href: '#how-it-works' },
+  { name: ' Testimonials ', href: '#testimonials' },
+  { name: ' Download ', href: '#download' },
 ]
 
 interface HeaderProps {
@@ -45,7 +45,7 @@ export default function Header({ isDarkMode, toggleDarkMode, isLoggedIn, handleL
             <motion.a
               key={item.name}
               href={item.href}
-              className={`text-gray-600 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400 transition-colors duration-300 ${
+              className={`text-gray-600 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400 px-4 transition-colors duration-300 ${
                 activeSection === item.href.slice(1) ? 'text-green-500 dark:text-green-400' : ''
               }`}
               whileHover={{ scale: 1.1 }}
